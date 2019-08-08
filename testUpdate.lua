@@ -9,7 +9,7 @@ function main()
 	downloadUrlToFile('https://raw.githubusercontent.com/777qwerty777/pd/master/version.json', thisScript().path..'.txt',
 	function(id, status, p1, p2)
 		if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-			sampAddChatMessage(('[Testing]: Îáíîâëåíèå çàâåðøåíî!'), -1)
+			sampAddChatMessage(('[Testing]: Обновление завершено!'), -1)
 			lua_thread.create(function()
 				wait(300)
 				local file = io.open(thisScript().path..'.txt', 'r')
@@ -18,9 +18,10 @@ function main()
 					sampAddChatMessage(u8:decode(info.updateurl), -1)
 					sampAddChatMessage(info.latest, -1)
 					if info.latest ~= thisScript().version then
-						sampAddChatMessage('Âûøëî îáíîâëåíèå', -1)
+						sampAddChatMessage('Вышло обновление', -1)
+						goupdate(info.latest, info.latest)
 					else
-						sampAddChatMessage('Ñâåæàÿ âåðñèÿ', -1)
+						sampAddChatMessage('Свежая версия', -1)
 					end
 				end
 				file:close()
@@ -45,7 +46,7 @@ function update()
 						lua_thread.create(goupdate)
 					else
 						update = false
-						sampAddChatMessage(('[Testing]: Ó âàñ è òàê ïîñëåäíÿÿ âåðñèÿ! Îáíîâëåíèå îòìåíåíî'), -1)
+						sampAddChatMessage(('[Testing]: У вас и так последняя версия! Обновление отменено'), -1)
 					end
 				end
 			end
@@ -53,15 +54,23 @@ function update()
 	end)
 end
 
-function goupdate()
-	sampAddChatMessage(('[Testing]: Îáíàðóæåíî îáíîâëåíèå. AutoReload ìîæåò êîíôëèêòîâàòü. Îáíîâëÿþñü...'), -1)
-	sampAddChatMessage(('[Testing]: Òåêóùàÿ âåðñèÿ: '..thisScript().version..". Íîâàÿ âåðñèÿ: "..version), -1)
+function goupdate(link, ver)
+	sampAddChatMessage(('[Testing]: Обнаружено обновление. AutoReload может конфликтовать. Обновляюсь...'), -1)
+	sampAddChatMessage(('[Testing]: Текущая версия: '..thisScript().version..". Новая версия: "..ver), -1)
 	wait(300)
-	downloadUrlToFile(updatelink, thisScript().path,
+	downloadUrlToFile(link, thisScript().path,
 	function(id3, status1, p13, p23)
-		if status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-			sampAddChatMessage(('[Testing]: Îáíîâëåíèå çàâåðøåíî!'), -1)
-			thisScript():reload()
+		if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
+			sampAddChatMessage(string.format('Загружено %d из %d.', p13, p23), -1)
+		elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
+			lua_thread.create(function()
+				wait(300)
+				sampAddChatMessage(('[Testing]: Обновление завершено!'), -1)
+				thisScript():reload()
+			end)
+		end
+		if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
+			sampAddChatMessage('Обновление прошло неудачно. Запускаю устаревшую версию..', -1)
 		end
 	end)
 end
