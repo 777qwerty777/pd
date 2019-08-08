@@ -1,4 +1,4 @@
-script_version('08.08.19')
+script_version('07.08.19')
 local dlstatus = require('moonloader').download_status
 local encoding = require('encoding')
 encoding.default = 'CP1251'
@@ -9,7 +9,7 @@ function main()
 	downloadUrlToFile('https://raw.githubusercontent.com/777qwerty777/pd/master/version.json', thisScript().path..'.txt',
 	function(id, status, p1, p2)
 		if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-			sampAddChatMessage(('[Testing]: Обновление завершено!'), -1)
+			sampAddChatMessage(('[Testing]: ГЋГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ Г§Г ГўГҐГ°ГёГҐГ­Г®!'), -1)
 			lua_thread.create(function()
 				wait(300)
 				local file = io.open(thisScript().path..'.txt', 'r')
@@ -18,9 +18,9 @@ function main()
 					sampAddChatMessage(u8:decode(info.updateurl), -1)
 					sampAddChatMessage(info.latest, -1)
 					if info.latest ~= thisScript().version then
-						sampAddChatMessage('Вышло обновление', -1)
+						sampAddChatMessage('Г‚Г»ГёГ«Г® Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ', -1)
 					else
-						sampAddChatMessage('Свежая версия', -1)
+						sampAddChatMessage('Г‘ГўГҐГ¦Г Гї ГўГҐГ°Г±ГЁГї', -1)
 					end
 				end
 				file:close()
@@ -45,7 +45,7 @@ function update()
 						lua_thread.create(goupdate)
 					else
 						update = false
-						sampAddChatMessage(('[Testing]: У вас и так последняя версия! Обновление отменено'), -1)
+						sampAddChatMessage(('[Testing]: Г“ ГўГ Г± ГЁ ГІГ ГЄ ГЇГ®Г±Г«ГҐГ¤Г­ГїГї ГўГҐГ°Г±ГЁГї! ГЋГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ Г®ГІГ¬ГҐГ­ГҐГ­Г®'), -1)
 					end
 				end
 			end
@@ -54,13 +54,13 @@ function update()
 end
 
 function goupdate()
-	sampAddChatMessage(('[Testing]: Обнаружено обновление. AutoReload может конфликтовать. Обновляюсь...'), -1)
-	sampAddChatMessage(('[Testing]: Текущая версия: '..thisScript().version..". Новая версия: "..version), -1)
+	sampAddChatMessage(('[Testing]: ГЋГЎГ­Г Г°ГіГ¦ГҐГ­Г® Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ. AutoReload Г¬Г®Г¦ГҐГІ ГЄГ®Г­ГґГ«ГЁГЄГІГ®ГўГ ГІГј. ГЋГЎГ­Г®ГўГ«ГїГѕГ±Гј...'), -1)
+	sampAddChatMessage(('[Testing]: Г’ГҐГЄГіГ№Г Гї ГўГҐГ°Г±ГЁГї: '..thisScript().version..". ГЌГ®ГўГ Гї ГўГҐГ°Г±ГЁГї: "..version), -1)
 	wait(300)
 	downloadUrlToFile(updatelink, thisScript().path,
 	function(id3, status1, p13, p23)
 		if status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-			sampAddChatMessage(('[Testing]: Обновление завершено!'), -1)
+			sampAddChatMessage(('[Testing]: ГЋГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ Г§Г ГўГҐГ°ГёГҐГ­Г®!'), -1)
 			thisScript():reload()
 		end
 	end)
