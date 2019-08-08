@@ -34,24 +34,28 @@ function autoupdate(json_url, url)
 						if updateversion ~= thisScript().version then
 							lua_thread.create(function()
 								local color = -1
-								sampAddChatMessage('пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ c '..thisScript().version..' пїЅпїЅ '..updateversion, color)
+								sampAddChatMessage('Обнаружено обновление. Пытаюсь обновиться c '..thisScript().version..' на '..updateversion, color)
 								wait(250)
 								downloadUrlToFile(updatelink, thisScript().path,
 								function(id3, status1, p13, p23)
 									if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
-										print(string.format('пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ %d пїЅпїЅ %d.', p13, p23))
+										print(string.format('Загружено %d из %d.', p13, p23))
 									elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-										print('пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.')
-										sampAddChatMessage('пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ!', color)
+										print('Загрузка обновления завершена.')
+										sampAddChatMessage('Обновление завершено!', color)
 										goupdatestatus = true
 										lua_thread.create(function()
 											wait(500)
+											local text = readAll(thisScript().path)
+											local f = io.open(thisScript().path, 'w')
+											f:write(u8:decode(text))
+											f:close()
 											thisScript():reload()
 										end)
 									end
 									if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
 										if goupdatestatus == nil then
-											sampAddChatMessage('пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ..', color)
+											sampAddChatMessage('Обновление прошло неудачно. Запускаю устаревшую версию..', color)
 											update = false
 										end
 									end
@@ -59,11 +63,11 @@ function autoupdate(json_url, url)
 							end)
 						else
 							update = false
-							print('v'..thisScript().version..': пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.')
+							print('v'..thisScript().version..': Обновление не требуется.')
 						end
 					end
 				else
-					print('v'..thisScript().version..': пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ '..url)
+					print('v'..thisScript().version..': Не могу проверить обновление. Смиритесь или проверьте самостоятельно на '..url)
 					update = false
 				end
 			end
