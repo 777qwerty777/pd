@@ -1,4 +1,4 @@
-script_version('08.08.19')
+script_version('07.08.19')
 local dlstatus = require('moonloader').download_status
 local encoding = require('encoding')
 encoding.default = 'CP1251'
