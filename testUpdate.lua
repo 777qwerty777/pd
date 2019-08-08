@@ -1,4 +1,4 @@
-script_version('07.08.19')
+script_version('08.08.19')
 local dlstatus = require('moonloader').download_status
 local encoding = require('encoding')
 encoding.default = 'CP1251'
@@ -8,6 +8,13 @@ function main()
 	wait(1111)
 	autoupdate('https://raw.githubusercontent.com/777qwerty777/pd/master/version.json', 'https://vk.com/id269473334')
 	wait(-1)
+end
+
+function readAll(file)
+    local f = assert(io.open(file, 'rb'))
+    local content = f:read('*all')
+    f:close()
+    return content
 end
 
 function autoupdate(json_url, url)
@@ -26,23 +33,25 @@ function autoupdate(json_url, url)
 						os.remove(json)
 						if updateversion ~= thisScript().version then
 							lua_thread.create(function()
-								local dlstatus = require('moonloader').download_status
 								local color = -1
-								sampAddChatMessage('Обнаружено обновление. Пытаюсь обновиться c '..thisScript().version..' на '..updateversion, color)
+								sampAddChatMessage('���������� ����������. ������� ���������� c '..thisScript().version..' �� '..updateversion, color)
 								wait(250)
 								downloadUrlToFile(updatelink, thisScript().path,
 								function(id3, status1, p13, p23)
 									if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
-										print(string.format('Загружено %d из %d.', p13, p23))
+										print(string.format('��������� %d �� %d.', p13, p23))
 									elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-										print('Загрузка обновления завершена.')
-										sampAddChatMessage('Обновление завершено!', color)
+										print('�������� ���������� ���������.')
+										sampAddChatMessage('���������� ���������!', color)
 										goupdatestatus = true
-										lua_thread.create(function() wait(500) thisScript():reload() end)
+										lua_thread.create(function()
+											wait(500)
+											thisScript():reload()
+										end)
 									end
 									if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
 										if goupdatestatus == nil then
-											sampAddChatMessage('Обновление прошло неудачно. Запускаю устаревшую версию..', color)
+											sampAddChatMessage('���������� ������ ��������. �������� ���������� ������..', color)
 											update = false
 										end
 									end
@@ -50,11 +59,11 @@ function autoupdate(json_url, url)
 							end)
 						else
 							update = false
-							print('v'..thisScript().version..': Обновление не требуется.')
+							print('v'..thisScript().version..': ���������� �� ���������.')
 						end
 					end
 				else
-					print('v'..thisScript().version..': Не могу проверить обновление. Смиритесь или проверьте самостоятельно на '..url)
+					print('v'..thisScript().version..': �� ���� ��������� ����������. ��������� ��� ��������� �������������� �� '..url)
 					update = false
 				end
 			end
