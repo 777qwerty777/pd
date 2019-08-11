@@ -2,12 +2,14 @@ local sampev, imgui, encoding, inicfg, vkeys = require('samp.events'), require('
 local dlstatus = require('moonloader').download_status
 encoding.default = 'CP1251'
 u8 = encoding.UTF8
-script_version('07.08.19')
+script_version('11.08.19 18')
 require('moonloader')
 
 
 -- ########### :: VARS :: ###########
 -- ########### :: VARS :: ###########
+local isGetAmmo = false
+local editKeys = 0
 local mouse = false
 local isRed = false
 local varId = -1
@@ -42,27 +44,47 @@ if not doesFileExist(DIR_INI) then
 	for k, v in pairs(default_colors) do
 		text = string.format('%s\n%s=%s', text, k, v)
 	end
-	text = string.format('%s\n[float]\n1=4.0\n2=4.0\n3=4.0\n[key]\nwanted=73\npursuit=71', text)
+	text = string.format('%s\n[float]\n1=4.0\n2=4.0\n3=4.0\n[key]\nwanted=73\npursuit=71\nammo=113\n[ammo]\nshotgun=true\ndeagle=true\nsmg=false\nm4=true\nrifle=true\narmour=true\ngranate=false', text)
 	local file = io.open(DIR_INI, 'a')
 	file:write(text)
 	file:flush()
 	io.close(file)
 end
 local ini = inicfg.load(nil, DIR_INI)
+if not ini.key.ammo then ini.key.ammo = 113;    inicfg.save(ini, DIR_INI) end
+if ini.ammo == nil then
+	ini.ammo = {
+		deagle  = true;
+		shotgun = true;
+		smg     = false;
+		m4      = true;
+		rifle   = true;
+		armour  = true;
+		granate = false;
+	}
+	inicfg.save(ini, DIR_INI)
+end
 
 -- ########### :: TABLE :: ###########
-local masked, wanted, notif, font, object = {}, {}, {}, {}, {}
+local masked, wanted, notif, font = {}, {}, {}, {}
 
-local editKeys = 0
-
-local hotKeyAdminMenu = imgui.ImBuffer(tostring(ini.key.wanted), 256)
 local hotKey = {
+	pursuit = imgui.ImBuffer(tostring(ini.key.pursuit), 256);
 	wanted  = imgui.ImBuffer(tostring(ini.key.wanted), 256);
-	pursuit = imgui.ImBuffer(tostring(ini.key.pursuit), 256)
+	ammo    = imgui.ImBuffer(tostring(ini.key.ammo), 256)
 }
 local IM = {
 	Want = imgui.ImBool(false);
 	Styl = imgui.ImBool(false);
+	Bind = imgui.ImBool(false);
+
+	shotgun = imgui.ImBool(ini.ammo.shotgun);
+	deagle  = imgui.ImBool(ini.ammo.deagle);
+	smg     = imgui.ImBool(ini.ammo.smg);
+	m4      = imgui.ImBool(ini.ammo.m4);
+	rifle   = imgui.ImBool(ini.ammo.rifle);
+	armour  = imgui.ImBool(ini.ammo.armour);
+	granate = imgui.ImBool(ini.ammo.granate);
 
 	Buf1 = imgui.ImBuffer(256);
 	Buf2 = imgui.ImBuffer(256);
@@ -85,7 +107,7 @@ local IM = {
 	sPods = 1;
 }
 
-local setTable = {
+local setTable, setAmmo = {
 	['Поле ввода'] = {
 		[8]  = 'Без эффектов';
 		[9]  = 'При наведении';
@@ -113,7 +135,16 @@ local setTable = {
 		[41] = 'Текст';
 		[43] = 'Фон окна';
 	}
+}, {
+	{'Deagle'; 'deagle'};
+	{'Shotgun'; 'shotgun'};
+	{'SMG'; 'smg'};
+	{'M4A1'; 'm4'};
+	{'Rifle'; 'rifle'};
+	{'Броня'; 'armour'};
+	{'Спец оружие'; 'granate'};
 }
+
 local copColor = {
 	[3]  = {5; 19}; -- WindowBg;      PopupBg;     ComboBg
 	[6]  = {29};    -- Border;        Separator
@@ -131,18 +162,6 @@ local ToScreen = convertGameScreenCoordsToWindowScreenCoords
 -- ########### :: COMBO ITEMS :: ###########
 local items_stat, items_pod, items_star = {}, {}, {'1';'2';'3';'4';'5';'6'}
 
--- ########### :: VARS :: ###########
--- ########### :: VARS :: ###########
-
-
-for k, v in pairs(ini.colors) do
-	colors[k] = imgui.ImColor(v):GetVec4()
-end
-for k, v in pairs(copColor) do
-	for _, iv in ipairs(copColor[k]) do
-		colors[iv] = colors[k]
-	end
-end
 
 local SendWanted = lua_thread.create_suspended(function(...)
 	repeat wait(0) until math.ceil(os.clock() * 1000 - antiflood) > math.random(1100, 1200)
@@ -156,6 +175,20 @@ local SendPursuit = lua_thread.create_suspended(function(id)
 	repeat wait(0) until math.ceil(os.clock() * 1000 - antiflood) > math.random(1100, 1200)
 	if not getPlayerMask(id) then sampSendChat('/ps ' .. id) end
 end)
+local GetAmmo = lua_thread.create_suspended(function() isGetAmmo = true; wait(3500); isGetAmmo = false end)
+
+-- ########### :: VARS :: ###########
+-- ########### :: VARS :: ###########
+
+
+for k, v in pairs(ini.colors) do
+	colors[k] = imgui.ImColor(v):GetVec4()
+end
+for k, v in pairs(copColor) do
+	for _, iv in ipairs(copColor[k]) do
+		colors[iv] = colors[k]
+	end
+end
 
 imgui.ShowCursor = false
 
@@ -350,22 +383,26 @@ function main()
 		local result, target = getCharPlayerIsTargeting(PLAYER_HANDLE)
 		if result and isKeysDown(hotKey.wanted.v) then
 			local result2, playerid = sampGetPlayerIdByCharHandle(target)
-			if result2 and playerid > -1 and not getPlayerMask(playerid) then
+			if result2 and playerid > -1 --[[and not getPlayerMask(playerid)]] then
 				varId = playerid
 				IM.Want.v = true
 			end
 		end
 		if result and isKeysDown(hotKey.pursuit.v) then
 			local result2, playerid = sampGetPlayerIdByCharHandle(target)
-			if result2 and playerid > -1 and not getPlayerMask(playerid) then
+			if result2 and playerid > -1 --[[and not getPlayerMask(playerid)]] then
 				varId = playerid
 				SendPursuit:run(playerid)
 			end
 		end
+		if isKeysDown(hotKey.ammo.v) and chat_cont() and sampIsDialogActive() and sampGetCurrentDialogId() == 245 then
+			GetAmmo:run()
+			sampSendDialogResponse(245, 1, 10, nil)
+		end
 
 
 		if isRed and not IM.Want.v then isRed = false end
-		if IM.Want.v or IM.Styl.v then
+		if IM.Want.v or IM.Styl.v or IM.Bind.v then
 			if not mouse then
 				mouse = true; showCursor(true, false)
 			end
@@ -575,29 +612,32 @@ function imgui.OnDrawFrame()
 		imgui.SetCursorPosX(5)
 		if imgui.Button('REVERT ALL', imgui.ImVec2(imgui.GetContentRegionAvailWidth() + 3, 0)) then revert_colors() end
 		imgui.PopStyleVar()
-		for k, v in pairs(setTable) do
+		if imgui.CollapsingHeader(u8('Цвета')) then
+			for k, v in pairs(setTable) do
 
-			if imgui.CollapsingHeader(u8(k)) then
-				for sk, sv in pairs(v) do
-					local color = imgui.ImFloat4(imgui.ImColor(ini.colors[sk]):GetFloat4())
-					imgui.AlignTextToFramePadding()
-					imgui.Text(u8(sv))
-					imgui.SameLine(195)
-					if imgui.ColorEdit4(u8'##ColEdit' .. sk, color, imgui.ColorEditFlags.NoInputs + imgui.ColorEditFlags.NoLabel + imgui.ColorEditFlags.AlphaBar) then
-						local newColor = imgui.ImColor.FromFloat4(color.v[1], color.v[2], color.v[3], color.v[4]):GetVec4()
-						ini.colors[sk] = imgui.ImColor(newColor):GetU32()
-						inicfg.save(ini, DIR_INI);
-						colors[sk] = newColor
-						if copColor[sk] then
-							for _, iv in ipairs(copColor[sk]) do
-								colors[iv] = newColor
+				if imgui.TreeNode(u8(k)) then
+					for sk, sv in pairs(v) do
+						local color = imgui.ImFloat4(imgui.ImColor(ini.colors[sk]):GetFloat4())
+						imgui.AlignTextToFramePadding()
+						imgui.Text(u8(sv))
+						imgui.SameLine(195)
+						if imgui.ColorEdit4(u8'##ColEdit' .. sk, color, imgui.ColorEditFlags.NoInputs + imgui.ColorEditFlags.NoLabel + imgui.ColorEditFlags.AlphaBar) then
+							local newColor = imgui.ImColor.FromFloat4(color.v[1], color.v[2], color.v[3], color.v[4]):GetVec4()
+							ini.colors[sk] = imgui.ImColor(newColor):GetU32()
+							inicfg.save(ini, DIR_INI);
+							colors[sk] = newColor
+							if copColor[sk] then
+								for _, iv in ipairs(copColor[sk]) do
+									colors[iv] = newColor
+								end
 							end
 						end
+						if ini.colors[sk] ~= default_colors[sk] then
+							imgui.SameLine(nil, 8)
+							if imgui.Button('REVERT##' .. sk) then revert_colors(sk) end
+						end
 					end
-					if ini.colors[sk] ~= default_colors[sk] then
-						imgui.SameLine(nil, 8)
-						if imgui.Button('REVERT##' .. sk) then revert_colors(sk) end
-					end
+					imgui.TreePop()
 				end
 			end
 		end
@@ -612,6 +652,14 @@ function imgui.OnDrawFrame()
 				ini.float[3] = IM.float3.v; inicfg.save(ini, DIR_INI)
 			end
 		end
+		if imgui.CollapsingHeader(u8'Боекомплект') then
+			for k, i in pairs(setAmmo) do
+				if imgui.Checkbox(u8(i[1]), IM[i[2]]) then
+					ini.ammo[i[2]] = IM[i[2]].v
+					inicfg.save(ini, DIR_INI)
+				end
+			end
+		end
 		if imgui.CollapsingHeader(u8'Клавиши') then
 			if imgui.Hotkey(u8'Выдать розыск', hotKey.wanted, 90) then
 				nextLockKey = hotKey.wanted.v
@@ -623,8 +671,13 @@ function imgui.OnDrawFrame()
 				ini.key.pursuit = hotKey.pursuit.v
 				inicfg.save(ini, DIR_INI)
 			end
+			if imgui.Hotkey(u8'Взять БК', hotKey.ammo, 90) then
+				nextLockKey = hotKey.ammo.v
+				ini.key.ammo = hotKey.ammo.v
+				inicfg.save(ini, DIR_INI)
+			end
 		end
-		imgui.Text(u8'Версия: 05/08/19')
+		imgui.Text(u8'Версия: '..thisScript().version)
 		imgui.End()
 		imgui.PopFont()
 	end
@@ -671,7 +724,7 @@ end
 function sampev.onSetPlayerAttachedObject(playerId, index, create, object)
 	if index == 2 then
 		if create then
-			if isMasked(object.modelId) and object.bone == 2 then
+			if isMasked(object.modelId) --[[and object.bone == 2]] then
 				masked[playerId] = true;
 			end
 		else
@@ -682,14 +735,43 @@ function sampev.onSetPlayerAttachedObject(playerId, index, create, object)
 	end
 	return true
 end
-
-
 function sampev.onPlayerStreamOut(playerId)
 	if masked[playerId] then
 		masked[playerId] = nil
 	end
 	return true
 end
+function sampev.onShowDialog(id, style, title, b1, b2, text)
+	if id == 245 and title == 'Склад оружия' and style == 4 and isGetAmmo then
+		if IM.deagle.v and getAmmoInCharWeapon(PLAYER_PED, 24) <= 21 then
+			sampSendDialogResponse(id, 1, 0, nil) -- Deagle
+			return false
+		elseif IM.shotgun.v and getAmmoInCharWeapon(PLAYER_PED, 25) <= 30 then
+			sampSendDialogResponse(id, 1, 1, nil) -- Shotgun
+			return false
+		elseif IM.smg.v and getAmmoInCharWeapon(PLAYER_PED, 29) <= 90 then
+			sampSendDialogResponse(id, 1, 2, nil) -- SMG
+			return false
+		elseif IM.m4.v and getAmmoInCharWeapon(PLAYER_PED, 31) <= 150 then
+			sampSendDialogResponse(id, 1, 3, nil) -- M4
+			return false
+		elseif IM.rifle.v and getAmmoInCharWeapon(PLAYER_PED, 33) <= 30 then
+			sampSendDialogResponse(id, 1, 4, nil) -- Rifle
+			return false
+		elseif IM.armour.v then
+			if getCharArmour(PLAYER_PED) < 100 or (getCharHealth(PLAYER_PED) < 100) or (sampTextdrawIsExists(2048) and tonumber(sampTextdrawGetString(2048)) < 20) then
+				sampSendDialogResponse(id, 1, 5, nil) -- Armour
+				return false
+			end
+		elseif IM.granate.v then
+			if (getAmmoInCharWeapon(PLAYER_PED, 3) < 1) or (getAmmoInCharWeapon(PLAYER_PED, 17) > 0 and getAmmoInCharWeapon(PLAYER_PED, 17) <= 10) then
+				sampSendDialogResponse(id, 1, 6, nil) -- Granate
+				return false
+			end
+		end
+	end
+end
+
 function getFullHD(size)
 	if resX == 1920 then
 		return size * 1.5
@@ -709,12 +791,12 @@ function isMasked(id)
 end
 function save_wanted()
 	local file = io.open(DIR_WANTED, 'w')
-	file:write(table_tostring(wanted))
+	file:write(wanted_tostring(wanted))
 	file:flush()
 	io.close(file)
 end
 
-function table_tostring(t)
+function wanted_tostring(t)
 	local result = 'return {\n';
 	for i = 1, IM.mStat do
 		if t[i] then
@@ -783,7 +865,7 @@ end
 function onScriptTerminate(scr, quitGame)
 	if scr == script.this then
 		imgui.Process = false
-		showCursor(false, false)
+		if mouse then showCursor(false, false) end
 	end
 end
 
@@ -900,9 +982,7 @@ function isKeysDown(keylist, pressed)
     return bool
 end
 function string.split(inputstr, sep)
-    if sep == nil then
-        sep = "%s"
-    end
+	sep = sep or '%s'
     local t={} ; i=1
     for str in string.gmatch(inputstr, '([^'..sep..']+)') do
     	t[i] = str
@@ -973,14 +1053,6 @@ function imgui.Hotkey(name, keyBuf, width)
         imgui.Text(name)
     end
     return bool
-end
-function onScriptTerminate(scr, quitGame)
-	if scr == thisScript() then
-		for i, v in ipairs(object) do
-			deleteObject(v)
-		end
-		if mouse then showCursor(false, false) end
-	end
 end
 function onWindowMessage(msg, wparam, lparam)
     if (msg == 0x100 or msg == 0x101) then
@@ -1064,10 +1136,13 @@ function autoupdate(json_url, url)
 						end
 					end
 				else
-					print('Не могу проверить обновление. Смиритесь или проверьте самостоятельно на '.. url)
+					print('Не могу проверить обновление. Смиритесь или просите у '.. url)
 					update = false
 				end
 			end
 		end)
 	while update ~= false do wait(100) end
+end
+function chat_cont()
+	return not sampIsChatInputActive() and not isSampfuncsConsoleActive()
 end
