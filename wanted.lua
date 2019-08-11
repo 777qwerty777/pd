@@ -2,7 +2,7 @@ local sampev, imgui, encoding, inicfg, vkeys = require('samp.events'), require('
 local dlstatus = require('moonloader').download_status
 encoding.default = 'CP1251'
 u8 = encoding.UTF8
-script_version('11.08.19 18')
+script_version('11.08.19 20')
 require('moonloader')
 
 
@@ -44,7 +44,7 @@ if not doesFileExist(DIR_INI) then
 	for k, v in pairs(default_colors) do
 		text = string.format('%s\n%s=%s', text, k, v)
 	end
-	text = string.format('%s\n[float]\n1=4.0\n2=4.0\n3=4.0\n[key]\nwanted=73\npursuit=71\nammo=113\n[ammo]\nshotgun=true\ndeagle=true\nsmg=false\nm4=true\nrifle=true\narmour=true\ngranate=false', text)
+	text = string.format('%s\n[float]\n1=4.0\n2=4.0\n3=4.0\n[key]\nwanted=73\npursuit=71\nammo=113\n[ammo]\nshotgun=true\ndeagle=true\nsmg=false\nm4=true\nrifle=true\narmour=true\ngranate=false\n[cmd]\n1=redw\n2=reds\n3=redb', text)
 	local file = io.open(DIR_INI, 'a')
 	file:write(text)
 	file:flush()
@@ -61,6 +61,14 @@ if ini.ammo == nil then
 		rifle   = true;
 		armour  = true;
 		granate = false;
+	}
+	inicfg.save(ini, DIR_INI)
+end
+if ini.cmd == nil then
+	ini.cmd = {
+		[1] = 'redw';
+		[2] = 'reds';
+		[3] = 'redb';
 	}
 	inicfg.save(ini, DIR_INI)
 end
@@ -89,6 +97,10 @@ local IM = {
 	Buf1 = imgui.ImBuffer(256);
 	Buf2 = imgui.ImBuffer(256);
 	Buf3 = imgui.ImBuffer(256);
+
+	Cmd1 = imgui.ImBuffer(u8(ini.cmd[1]), 255);
+	Cmd2 = imgui.ImBuffer(u8(ini.cmd[2]), 255);
+	Cmd3 = imgui.ImBuffer(u8(ini.cmd[3]), 255);
 
 	float1 = imgui.ImFloat(ini.float[1]);
 	float2 = imgui.ImFloat(ini.float[2]);
@@ -616,6 +628,7 @@ function imgui.OnDrawFrame()
 			for k, v in pairs(setTable) do
 
 				if imgui.TreeNode(u8(k)) then
+					imgui.Separator()
 					for sk, sv in pairs(v) do
 						local color = imgui.ImFloat4(imgui.ImColor(ini.colors[sk]):GetFloat4())
 						imgui.AlignTextToFramePadding()
@@ -637,6 +650,7 @@ function imgui.OnDrawFrame()
 							if imgui.Button('REVERT##' .. sk) then revert_colors(sk) end
 						end
 					end
+					imgui.Separator()
 					imgui.TreePop()
 				end
 			end
@@ -676,6 +690,31 @@ function imgui.OnDrawFrame()
 				ini.key.ammo = hotKey.ammo.v
 				inicfg.save(ini, DIR_INI)
 			end
+		end
+		if imgui.CollapsingHeader(u8'Команды') then
+			imgui.PushItemWidth(100)
+			if imgui.InputText(u8'Редактор розыска ## Input :: 1', IM.Cmd1) then
+				local cmd = string.match(IM.Cmd1.v, '^%s*(%S*)')
+				if cmd == '' then cmd = 'redw' end
+				IM.Cmd1.v = cmd
+				ini.cmd[1] = cmd
+				inicfg.save(ini, DIR_INI)
+			end
+			if imgui.InputText(u8'Редактор стиля ## Input :: 2', IM.Cmd2) then
+				local cmd = string.match(IM.Cmd2.v, '^%s*(%S*)')
+				if cmd == '' then cmd = 'reds' end
+				IM.Cmd2.v = cmd
+				ini.cmd[2] = cmd
+				inicfg.save(ini, DIR_INI)
+			end
+			if imgui.InputText(u8'Редактор биндов ## Input :: 3', IM.Cmd3) then
+				local cmd = string.match(IM.Cmd3.v, '^%s*(%S*)')
+				if cmd == '' then cmd = 'redb' end
+				IM.Cmd3.v = cmd
+				ini.cmd[3] = cmd
+				inicfg.save(ini, DIR_INI)
+			end
+			imgui.PopItemWidth()
 		end
 		imgui.Text(u8'Версия: '..thisScript().version)
 		imgui.End()
@@ -1074,7 +1113,7 @@ function sampev.onSendCommand(cmd)  antiflood = os.clock() * 1000
 		IM.Want.v = true
 		return false
 	end
-	if command[1] == '/redw' and #command == 1 then
+	if command[1] == '/'..ini.cmd[1] and #command == 1 then
 		varId = -1
 		if IM.Want.v and isRed then
 			IM.Want.v = false
@@ -1083,7 +1122,7 @@ function sampev.onSendCommand(cmd)  antiflood = os.clock() * 1000
 		end
 		return false
 	end -- getPlayerMask(id)
-	if command[1] == '/reds' and #command == 1 then
+	if command[1] == '/'..ini.cmd[2] and #command == 1 then
 		varId = -1
 		-- if IM.Want.v then IM.Want.v = false end
 		IM.Styl.v = not IM.Styl.v
