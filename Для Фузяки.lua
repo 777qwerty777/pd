@@ -6,6 +6,9 @@ function main()
 	sampRegisterChatCommand('dcol', function(id)
 		if sampIsPlayerConnected(id) then
 			color = sampGetPlayerColor(id)
+			sampAddChatMessage(string.format('Color damage: {%06X}', bit.band(color, 0xFFFFFF)), -1)
+		else
+			sampAddChatMessage('Color damage deleted', -1)
 		end
 	end)
 	while true do wait(0)
@@ -13,16 +16,18 @@ function main()
 		local weapon = getCurrentCharWeapon(PLAYER_PED)
 		local ammo = getAmmoInCharWeapon(PLAYER_PED, weapon)
 
-		if (weapon == 24 or weapon == 25 or weapon == 33) and not sampIsChatInputActive() and not sampIsDialogActive() and isKeyJustPressed(16) and color > 0 then -- SHIFT
+		if (weapon == 24 or weapon == 25 or weapon == 33) and not sampIsChatInputActive() and not sampIsDialogActive() and isKeyDown(16) and color > 0 then -- SHIFT
 			for id = 0, 1004 do
+				if not isKeyDown(16) then break end
 				if sampIsPlayerConnected(id) then
 					local result, ped = sampGetCharHandleBySampPlayerId(id)
-					if result then
+					if result and ped ~= PLAYER_PED then
 						local x2, y2, z2 = getCharCoordinates(ped)
-						if getCharHealth(ped) > 0 and getDistanceBetweenCoords2d(x1, y1, x2, y2) < 100 then
+						if getCharHealth(ped) > 0 and sampGetPlayerColor(id) == color then -- and getDistanceBetweenCoords2d(x1, y1, x2, y2) < 100
 							setCharAmmo(PLAYER_PED, weapon, ammo-1)
 							BulletSync(1, id, x1, y1, z1, x2, y2, z2, math.random(-30, 30)/100, math.random(-30, 30)/100, math.random(-30, 30)/100, weapon)
-							wait(300)
+							wait(400)
+							printStringNow('~G~Send damage => ~P~'..sampGetPlayerNickname(id)..' ['..id..']', 1000)
 						end
 					end
 				end
@@ -43,19 +48,19 @@ function main()
 	end
 end
 function BulletSync(byteType, sTargetID, fOriginX, fOriginY, fOriginZ, fTargetX, fTargetY, fTargetZ, fCenterX, fCenterY, fCenterZ, byteWeaponID)
-  local struct = allocateMemory(40)
-  setStructElement(struct, 0, 1, byteType)
-  setStructElement(struct, 1, 2, sTargetID)
-  setStructElement(struct, 3, 4, representFloatAsInt(fOriginX))
-  setStructElement(struct, 7, 4, representFloatAsInt(fOriginY))
-  setStructElement(struct, 11, 4, representFloatAsInt(fOriginZ))
-  setStructElement(struct, 15, 4, representFloatAsInt(fTargetX))
-  setStructElement(struct, 19, 4, representFloatAsInt(fTargetY))
-  setStructElement(struct, 23, 4, representFloatAsInt(fTargetZ))
-  setStructElement(struct, 27, 4, representFloatAsInt(fCenterX))
-  setStructElement(struct, 31, 4, representFloatAsInt(fCenterY))
-  setStructElement(struct, 35, 4, representFloatAsInt(fCenterZ))
-  setStructElement(struct, 39, 1, byteWeaponID)
-  sampSendBulletData(struct)
-  freeMemory(struct)
+	local struct = allocateMemory(40)
+	setStructElement(struct, 0, 1, byteType)
+	setStructElement(struct, 1, 2, sTargetID)
+	setStructElement(struct, 3, 4, representFloatAsInt(fOriginX))
+	setStructElement(struct, 7, 4, representFloatAsInt(fOriginY))
+	setStructElement(struct, 11, 4, representFloatAsInt(fOriginZ))
+	setStructElement(struct, 15, 4, representFloatAsInt(fTargetX))
+	setStructElement(struct, 19, 4, representFloatAsInt(fTargetY))
+	setStructElement(struct, 23, 4, representFloatAsInt(fTargetZ))
+	setStructElement(struct, 27, 4, representFloatAsInt(fCenterX))
+	setStructElement(struct, 31, 4, representFloatAsInt(fCenterY))
+	setStructElement(struct, 35, 4, representFloatAsInt(fCenterZ))
+	setStructElement(struct, 39, 1, byteWeaponID)
+	sampSendBulletData(struct)
+	freeMemory(struct)
 end
