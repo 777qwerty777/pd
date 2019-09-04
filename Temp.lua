@@ -1,12 +1,12 @@
 
+script_author('Gabriel_Montana')
+
+-- ::INCLUDE
 local sampev = require('samp.events') 
- 
- 
+
 local logins = {} 
 local dir_logins = string.format('%s\\moonloader\\config\\accounts.base', getGameDirectory()) 
- 
- 
- 
+
 if not doesFileExist(dir_logins) then 
     local file = io.open(dir_logins, 'a') 
     file:write('{}') 
@@ -59,7 +59,7 @@ function dialog()
     ::Main:: 
     local nicks, size = getNicknames() 
     local text = nicks 
-    table.insert(text, 1, '»> Добавить\t') 
+    table.insert(text, 1, '>>> Добавить\t') 
     local bDialog, button, list, input = false, nil, nil, nil 
     sampShowDialog(63333, 'Автологин', table.concat(text, '\n'), 'Выбрать', 'Закрыть', 4) 
     wait(100) 
@@ -70,15 +70,51 @@ function dialog()
     if button ~= 0 then 
         if list == 0 then 
             local nickname = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) 
-            local tampkey = string.format ("%s\t(%s)",nickname,getServer()) 
-            if logins[tampkey] == nil then 
-            logins[tampkey] = { 
+            local temp_key = string.format ("%s\t(%s)",nickname,getServer()) 
+            if logins[temp_key] == nil then 
+            logins[temp_key] = { 
                 server = sampGetCurrentServerAddress(); 
                 pass1 = ''; 
                 pass2 = '' 
             } 
-            save_base () 
- 
+            save_base()
+             
+            ::CreatePassword::
+            local bDialog, button, list, input = false, nil, nil, nil 
+            sampShowDialog(63332, 'Автологин :: пароль', 'Пароль для аккаунта: '..temp_key, 'Сохранить', 'Назад', 3)
+            wait(100)
+            while not bDialog do 
+                wait(0) 
+                bDialog, button, list, input = sampHasDialogRespond(63332) 
+            end
+            if button ~= 0 then
+                if input:len() ~= 0 then
+                    logins[temp_key].pass1 = input
+                    ::CreateIp::
+                    local bDialog, button, list, input = false, nil, nil, nil 
+                    sampShowDialog(63331, 'Автологин :: пароль', 'IP пароль для аккаунта: '..temp_key, 'Сохранить', 'Назад', 3)
+                    wait(100)
+                    while not bDialog do 
+                        wait(0) 
+                        bDialog, button, list, input = sampHasDialogRespond(63331) 
+                    end
+                    if button ~= 0 then
+                        if input:len() ~= 0 then
+                            logins[temp_key].pass2 = input
+                            goto Main
+                        else
+                            goto CreateIp
+                        end
+                    else
+                        goto Main
+                    end
+                else
+                    goto CreatePassword
+                end
+            else
+                goto Main
+            end
+            
         else 
             sampAddChatMessage('Аккаунт существует', -1) 
         end 
